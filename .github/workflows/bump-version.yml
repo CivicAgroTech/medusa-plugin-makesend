@@ -1,0 +1,33 @@
+name: Version Bump
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # To allow tagging
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Bump version and push tag
+        id: bump_version
+        uses: phips28/gh-action-bump-version@v10.1.0
+        with:
+          # 'patch', 'minor', or 'major' – can be set automatically using commit messages
+          tag-prefix: 'v'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Optionally, output bumped version
+      - name: Show bumped version
+        run: echo ${{ steps.bump_version.outputs.newVersion }}
