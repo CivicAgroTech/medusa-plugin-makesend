@@ -22,6 +22,8 @@ export type CreateMakesendOrderInput = {
     // API credentials
     apiKey: string
     baseUrl?: string
+    trackingBaseUrl?: string
+    labelBaseUrl?: string
 
     // Stock location data
     stockLocation: {
@@ -65,7 +67,10 @@ export type CreateMakesendOrderResult = {
     orderId: string
     trackingId: string
     aliasId: string
-    deliveryFee: number
+    deliveryFee: number,
+    baseUrl?: string
+    trackingBaseUrl?: string
+    labelBaseUrl?: string
 }
 
 /**
@@ -162,7 +167,7 @@ export const createMakesendOrderStep = createStep(
             dropDistrict,
             dropPostcode: destPostcode,
             cod: 0,
-            temp: input.temperature || Temperature.NORMAL,
+            temp: input.temperature ?? Temperature.NORMAL,
             note: input.note || "",
             aliasID: input.fulfillmentId,
         }
@@ -183,6 +188,7 @@ export const createMakesendOrderStep = createStep(
         }
 
         try {
+            // Create order
             const response = await client.createOrder(request)
 
             const firstShipment = response.shipment[0]
@@ -192,10 +198,10 @@ export const createMakesendOrderStep = createStep(
                 trackingId: firstShipment.trackingID,
                 aliasId: firstShipment.aliasID,
                 deliveryFee: firstShipment.deliveryFee,
+                baseUrl: input.baseUrl,
+                trackingBaseUrl: input.trackingBaseUrl,
+                labelBaseUrl: input.labelBaseUrl,
             }
-
-            console.log(`[Makesend] Order created successfully: ${JSON.stringify(result)}`)
-
             return new StepResponse(result, result.orderId)
         } catch (error: any) {
             console.error(`[Makesend] Failed to create order: ${error.message}`)

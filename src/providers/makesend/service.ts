@@ -92,8 +92,26 @@ class MakesendFulfillmentProviderService extends AbstractFulfillmentProviderServ
         data: Record<string, unknown>,
         context: Record<string, unknown>
     ): Promise<Record<string, unknown>> {
-        // Extract and validate required fields from data
-        const temperature = (optionData.temperature as number) ?? Temperature.NORMAL
+        // Map fulfillment option ID to temperature if temperature is not directly provided
+        let temperature = (optionData.temperature as number)
+
+        if (temperature === undefined) {
+            const optionId = optionData.id as string
+            switch (optionId) {
+                case "makesend-standard":
+                    temperature = Temperature.NORMAL
+                    break
+                case "makesend-chill":
+                    temperature = Temperature.CHILL
+                    break
+                case "makesend-frozen":
+                    temperature = Temperature.FROZEN
+                    break
+                default:
+                    temperature = Temperature.NORMAL
+            }
+        }
+
         const validatedData: Record<string, unknown> = {
             temperature,
             parcelSize: data.parcelSize ?? ParcelSize.S80,
@@ -238,9 +256,9 @@ class MakesendFulfillmentProviderService extends AbstractFulfillmentProviderServ
         fulfillment: Partial<Omit<FulfillmentDTO, "provider_id" | "data" | "items" | "location">>
     ): Promise<CreateFulfillmentResult> {
         try {
-            this.logger_.info(`[Makesend] Creating fulfillment for data ${JSON.stringify(data)}`)
             const shippingAddress = order?.shipping_address
             const locationId = fulfillment.location_id as string
+            const shippingOptionId = fulfillment.shipping_option_id as string
 
             if (!locationId) {
                 throw new MedusaError(
@@ -261,8 +279,11 @@ class MakesendFulfillmentProviderService extends AbstractFulfillmentProviderServ
                 input: {
                     apiKey: this.options_.apiKey,
                     baseUrl: this.options_.baseUrl,
+                    trackingBaseUrl: this.options_.trackingBaseUrl,
+                    labelBaseUrl: this.options_.labelBaseUrl,
                     locationId,
                     fulfillmentId: fulfillment.id as string,
+                    shippingOptionId,
                     deliveryAddress: {
                         first_name: shippingAddress.first_name as string,
                         last_name: shippingAddress.last_name as string,
@@ -290,8 +311,6 @@ class MakesendFulfillmentProviderService extends AbstractFulfillmentProviderServ
                 )
             }
 
-            this.logger_.info(`[Makesend] Fulfillment created: ${result.trackingId}`)
-
             return {
                 data: {
                     id: result.orderId,
@@ -302,8 +321,8 @@ class MakesendFulfillmentProviderService extends AbstractFulfillmentProviderServ
                 labels: [
                     {
                         tracking_number: result.trackingId,
-                        tracking_url: `https://app.makesend.asia/tracking?t=${result.trackingId}`,
-                        label_url: `https://app.makesend.asia/waybill/${result.trackingId}`,
+                        tracking_url: `${result.trackingBaseUrl}/tracking?t=${result.trackingId}`,
+                        label_url: `${result.labelBaseUrl}/waybill/${result.trackingId}`,
                     },
                 ],
             }
@@ -337,12 +356,9 @@ class MakesendFulfillmentProviderService extends AbstractFulfillmentProviderServ
     ): Promise<Record<string, unknown>> {
         try {
             const fulfillmentData = fulfillment as unknown as MakesendFulfillmentData
-
-            this.logger_.info(`[Makesend] Fulfillment data: ${JSON.stringify(fulfillmentData)}`)
-
+            
             // If no tracking ID, no Makesend order was created - nothing to cancel
             if (!fulfillmentData?.trackingNumber) {
-                this.logger_.info("[Makesend] No tracking ID found - no Makesend order to cancel")
                 return { cancelled: true, noMakesendOrder: true }
             }
 

@@ -11,16 +11,20 @@ import {
     transform,
 } from "@medusajs/framework/workflows-sdk"
 import { fetchStockLocationStep, StockLocationResult } from "./steps/fetch-stock-location"
+import { fetchShippingOptionStep, ShippingOptionResult } from "./steps/fetch-shipping-option"
 import { createMakesendOrderStep, CreateMakesendOrderResult } from "./steps/create-makesend-order"
 
 export type CreateMakesendShipmentInput = {
     // API credentials
     apiKey: string
     baseUrl?: string
+    trackingBaseUrl?: string
+    labelBaseUrl?: string
 
     // Fulfillment info
     locationId: string
     fulfillmentId: string
+    shippingOptionId: string
 
     // Delivery address
     deliveryAddress: {
@@ -58,23 +62,31 @@ export const createMakesendShipmentWorkflow = createWorkflow(
             location_id: input.locationId,
         })
 
-        // Step 2: Transform to build order input
+        // Step 2: Fetch shipping option to get temperature
+        const shippingOptionData = fetchShippingOptionStep({
+            shipping_option_id: input.shippingOptionId,
+        })
+
+        // Step 3: Transform to build order input
         const orderInput = transform(
-            { input, stockLocation },
+            { input, stockLocation, shippingOptionData },
             (data) => ({
                 apiKey: data.input.apiKey,
                 baseUrl: data.input.baseUrl,
+                trackingBaseUrl: data.input.trackingBaseUrl,
+                labelBaseUrl: data.input.labelBaseUrl,
                 stockLocation: data.stockLocation as StockLocationResult,
                 fulfillmentId: data.input.fulfillmentId,
                 deliveryAddress: data.input.deliveryAddress,
-                temperature: data.input.temperature,
+                // Use temperature from shipping option, fallback to input
+                temperature: (data.shippingOptionData as ShippingOptionResult).temperature ?? data.input.temperature,
                 parcelSize: data.input.parcelSize,
                 parcelType: data.input.parcelType,
                 note: data.input.note,
             })
         )
 
-        // Step 3: Create Makesend order
+        // Step 4: Create Makesend order
         const orderResult = createMakesendOrderStep(orderInput)
 
         // Return result

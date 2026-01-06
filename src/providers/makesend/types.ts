@@ -388,6 +388,18 @@ export interface MakesendProviderOptions {
     baseUrl?: string
 
     /**
+     * Base URL for Makesend tracking URLs
+     * @default "https://msgo.makesend.asia"
+     */
+    trackingBaseUrl?: string
+
+    /**
+     * Base URL for Makesend label URLs
+     * @default "https://msgo.makesend.asia"
+     */
+    labelBaseUrl?: string
+
+    /**
      * Enable debug logging
      * @default false
      */
