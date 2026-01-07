@@ -5,7 +5,7 @@ on:
     branches:
       - main
 
-# Grant the workflow permission to push tags/commits using the GITHUB_TOKEN
+# Grant the workflow permission to push tags/commits using the RELEASE_TOKEN 
 permissions:
   contents: write
 
@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # To allow tagging
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_TOKEN  }}
           persist-credentials: true
 
       - name: Setup Node.js
@@ -31,8 +31,9 @@ jobs:
         with:
           # 'patch', 'minor', or 'major' – can be set automatically using commit messages
           tag-prefix: 'v'
+          version-type: 'patch'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TOKEN : ${{ secrets.RELEASE_TOKEN  }}
 
       # Optionally, output bumped version
       - name: Show bumped version
