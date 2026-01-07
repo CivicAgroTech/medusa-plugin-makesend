@@ -1,8 +1,8 @@
 {
   "name": "medusa-plugin-makesend",
-  "version": "0.0.1",
-  "description": "A starter for Medusa plugins.",
-  "author": "Medusa (https://medusajs.com)",
+  "version": "0.0.2",
+  "description": "Medusa fulfillment plugin for Makesend integration",
+  "author": "CivicAgrotech Co., Ltd. (https://civicagrotech.com)",
   "license": "MIT",
   "files": [
     ".medusa/server",
@@ -14,19 +14,21 @@
     "./.medusa/server/src/modules/*": "./.medusa/server/src/modules/*/index.js",
     "./modules/*": "./.medusa/server/src/modules/*/index.js",
     "./providers/*": "./.medusa/server/src/providers/*/index.js",
-    "./*": "./.medusa/server/src/*.js",
     "./admin": {
       "import": "./.medusa/server/src/admin/index.mjs",
       "require": "./.medusa/server/src/admin/index.js",
       "default": "./.medusa/server/src/admin/index.js"
-    }
+    },
+    "./*": "./.medusa/server/src/*.js"
   },
   "keywords": [
     "medusa",
     "plugin",
+    "medusa-plugin-fulfillment",
     "medusa-plugin-other",
     "medusa-plugin",
-    "medusa-v2"
+    "medusa-v2",
+    "makesend"
   ],
   "scripts": {
     "build": "medusa plugin:build",
@@ -38,10 +40,10 @@
     "@medusajs/admin-sdk": "^2.11.3",
     "@medusajs/cli": "^2.11.3",
     "@medusajs/framework": "^2.11.3",
+    "@medusajs/icons": "^2.11.3",
     "@medusajs/medusa": "^2.11.3",
     "@medusajs/test-utils": "^2.11.3",
     "@medusajs/ui": "^4.0.31",
-    "@medusajs/icons": "^2.11.3",
     "@swc/core": "1.5.7",
     "@types/node": "^25.0.3",
     "@types/react": "^19.2.7",
@@ -49,19 +51,19 @@
     "prop-types": "^15.8.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
+    "react-router-dom": "^7.11.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.2",
-    "react-router-dom": "^7.11.0",
     "yalc": "^1.0.0-pre.53"
   },
   "peerDependencies": {
     "@medusajs/admin-sdk": "^2.11.3",
     "@medusajs/cli": "^2.11.3",
     "@medusajs/framework": "^2.11.3",
-    "@medusajs/test-utils": "^2.11.3",
+    "@medusajs/icons": "^2.11.3",
     "@medusajs/medusa": "^2.11.3",
-    "@medusajs/ui": "^4.0.31",
-    "@medusajs/icons": "^2.11.3"
+    "@medusajs/test-utils": "^2.11.3",
+    "@medusajs/ui": "^4.0.31"
   },
   "engines": {
     "node": ">=20"

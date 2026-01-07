@@ -27,9 +27,12 @@ import {
 } from "./types"
 import { getProvinceId } from "./province-mapping"
 import { getLocationFromPostalCode } from "./postal-code-lookup"
+import MakesendSettingsModuleService from "../../modules/makesend-settings/service"
+import { MAKESEND_SETTINGS_MODULE } from "../../modules/makesend-settings"
 
 type InjectedDependencies = {
     logger: Logger
+    [MAKESEND_SETTINGS_MODULE]: MakesendSettingsModuleService
 }
 
 /**
@@ -42,15 +45,71 @@ class MakesendFulfillmentProviderService extends AbstractFulfillmentProviderServ
     protected logger_: Logger
     protected options_: MakesendProviderOptions
     protected client_: MakesendClient
+    protected settingsService_: MakesendSettingsModuleService
 
     constructor(
-        { logger }: InjectedDependencies,
+        container: InjectedDependencies,
         options: MakesendProviderOptions
     ) {
         super()
-        this.logger_ = logger
+        this.logger_ = container.logger
+        this.settingsService_ = container[MAKESEND_SETTINGS_MODULE]
         this.options_ = options
         this.client_ = new MakesendClient(options)
+    }
+
+    /**
+     * Helper: Get supported parcel sizes from settings
+     */
+    private async getSupportedParcelSizes(): Promise<ParcelSize[]> {
+        const settings = await this.settingsService_.getSettings()
+
+        if (!settings || !settings.supportedParcelSizes) {
+            return [ParcelSize.S80, ParcelSize.S100] // defaults
+        }
+
+        // Parse supported sizes
+        let codes: string[] = []
+        if (typeof settings.supportedParcelSizes === 'string') {
+            try {
+                codes = JSON.parse(settings.supportedParcelSizes)
+            } catch {
+                codes = []
+            }
+        } else if (Array.isArray(settings.supportedParcelSizes)) {
+            codes = settings.supportedParcelSizes
+        }
+
+        const PARCEL_SIZE_CODE_MAP: Record<string, ParcelSize> = {
+            "s40": ParcelSize.S40, "s60": ParcelSize.S60, "s80": ParcelSize.S80,
+            "s100": ParcelSize.S100, "s120": ParcelSize.S120, "s140": ParcelSize.S140,
+            "s160": ParcelSize.S160, "s180": ParcelSize.S180, "s200": ParcelSize.S200,
+            "env": ParcelSize.ENV, "polym": ParcelSize.POLYM, "polyl": ParcelSize.POLYL,
+        }
+
+        const sizes: ParcelSize[] = []
+        for (const code of codes) {
+            const size = PARCEL_SIZE_CODE_MAP[code]
+            if (size !== undefined) sizes.push(size)
+        }
+
+        return sizes.length > 0 ? sizes : [ParcelSize.S80, ParcelSize.S100]
+    }
+
+    /**
+     * Helper: Check if a parcel size is supported
+     */
+    private async isParcelSizeSupported(parcelSize: ParcelSize): Promise<boolean> {
+        const sizes = await this.getSupportedParcelSizes()
+        return sizes.includes(parcelSize)
+    }
+
+    /**
+     * Helper: Get default parcel size
+     */
+    private async getDefaultParcelSize(): Promise<ParcelSize> {
+        const sizes = await this.getSupportedParcelSizes()
+        return sizes[0]
     }
 
     /**
@@ -58,8 +117,8 @@ class MakesendFulfillmentProviderService extends AbstractFulfillmentProviderServ
      * These options represent different shipping types/temperatures
      */
     async getFulfillmentOptions(): Promise<FulfillmentOption[]> {
-        // Only use parcel sizes 6 (S80) and 7 (S100) as configured
-        const allowedParcelSizes = [ParcelSize.S80, ParcelSize.S100]
+        // Load configured parcel sizes from settings
+        const allowedParcelSizes = await this.getSupportedParcelSizes()
 
         return [
             {
@@ -114,14 +173,17 @@ class MakesendFulfillmentProviderService extends AbstractFulfillmentProviderServ
 
         const validatedData: Record<string, unknown> = {
             temperature,
-            parcelSize: data.parcelSize ?? ParcelSize.S80,
+            parcelSize: data.parcelSize ?? await this.getDefaultParcelSize(),
             parcelType: data.parcelType ?? ParcelType.OTHER,
         }
 
-        // Validate parcel size is within allowed range (6 or 7)
+        // Validate parcel size is within allowed range
         const parcelSize = validatedData.parcelSize as number
-        if (parcelSize !== ParcelSize.S80 && parcelSize !== ParcelSize.S100) {
-            throw new Error(`Invalid parcel size: ${parcelSize}. Must be 6 (S80) or 7 (S100).`)
+        if (!(await this.isParcelSizeSupported(parcelSize))) {
+            const supportedSizes = await this.getSupportedParcelSizes()
+            throw new Error(
+                `Invalid parcel size: ${parcelSize}. Supported sizes: ${supportedSizes.join(", ")}`
+            )
         }
 
         return validatedData
@@ -215,7 +277,7 @@ class MakesendFulfillmentProviderService extends AbstractFulfillmentProviderServ
                 destinationDistrictID,
                 cod: (data?.cod as number) || 0,
                 temp: temperature,
-                parcelSize: (data?.parcelSize as number) || ParcelSize.S80,
+                parcelSize: (data?.parcelSize as number) || await this.getDefaultParcelSize(),
                 parcelType: (data?.parcelType as string) || ParcelType.OTHER,
             }
 
@@ -356,7 +418,7 @@ class MakesendFulfillmentProviderService extends AbstractFulfillmentProviderServ
     ): Promise<Record<string, unknown>> {
         try {
             const fulfillmentData = fulfillment as unknown as MakesendFulfillmentData
-            
+
             // If no tracking ID, no Makesend order was created - nothing to cancel
             if (!fulfillmentData?.trackingNumber) {
                 return { cancelled: true, noMakesendOrder: true }

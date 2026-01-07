@@ -184,10 +184,6 @@ yarn dev
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## Repository
-
-[https://github.com/CivicAgroTech/medusa-makesend-fulfillment](https://github.com/CivicAgroTech/medusa-makesend-fulfillment)
-
 ## License
 
 MIT

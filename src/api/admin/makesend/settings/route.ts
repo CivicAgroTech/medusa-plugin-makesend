@@ -7,58 +7,8 @@
  */
 
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs"
-import { join, dirname } from "path"
-
-interface MakesendSettings {
-    originProvinceId: number | null
-    originDistrictId: number | null
-    originProvinceName?: string
-    originDistrictName?: string
-    // Sender/Pickup fields
-    senderName?: string
-    senderPhone?: string
-    pickupAddress?: string
-    pickupPostcode?: string
-    updatedAt?: string
-}
-
-const SETTINGS_FILE = join(__dirname, "../../../../../.makesend-settings.json")
-
-/**
- * Load settings from file or return defaults
- */
-function loadSettings(): MakesendSettings {
-    try {
-        if (existsSync(SETTINGS_FILE)) {
-            const data = readFileSync(SETTINGS_FILE, "utf-8")
-            return JSON.parse(data)
-        }
-    } catch (error) {
-        console.error("[Makesend] Failed to load settings:", error)
-    }
-
-    return {
-        originProvinceId: null,
-        originDistrictId: null,
-    }
-}
-
-/**
- * Save settings to file
- */
-function saveSettings(settings: MakesendSettings): void {
-    try {
-        const dir = dirname(SETTINGS_FILE)
-        if (!existsSync(dir)) {
-            mkdirSync(dir, { recursive: true })
-        }
-        writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2))
-    } catch (error) {
-        console.error("[Makesend] Failed to save settings:", error)
-        throw error
-    }
-}
+import MakesendSettingsModuleService from "../../../../modules/makesend-settings/service"
+import { MAKESEND_SETTINGS_MODULE } from "../../../../modules/makesend-settings"
 
 /**
  * GET /admin/makesend/settings
@@ -69,10 +19,16 @@ export const GET = async (
     res: MedusaResponse
 ) => {
     try {
-        const settings = loadSettings()
+        const settingsModuleService: MakesendSettingsModuleService =
+            req.scope.resolve(MAKESEND_SETTINGS_MODULE)
+
+        const settings = await settingsModuleService.getSettings()
 
         res.status(200).json({
-            settings,
+            settings: settings || {
+                originProvinceId: null,
+                originDistrictId: null,
+            },
         })
     } catch (error) {
         console.error("[Makesend] Failed to get settings:", error)
@@ -92,9 +48,12 @@ export const POST = async (
     res: MedusaResponse
 ) => {
     try {
-        const body = req.body as Partial<MakesendSettings>
+        const settingsModuleService: MakesendSettingsModuleService =
+            req.scope.resolve(MAKESEND_SETTINGS_MODULE)
 
-        const settings: MakesendSettings = {
+        const body = req.body as any
+
+        const settings = await settingsModuleService.updateSettings({
             originProvinceId: body.originProvinceId ?? null,
             originDistrictId: body.originDistrictId ?? null,
             originProvinceName: body.originProvinceName,
@@ -103,10 +62,9 @@ export const POST = async (
             senderPhone: body.senderPhone,
             pickupAddress: body.pickupAddress,
             pickupPostcode: body.pickupPostcode,
-            updatedAt: new Date().toISOString(),
-        }
-
-        saveSettings(settings)
+            timeCutoff: body.timeCutoff,
+            supportedParcelSizes: body.supportedParcelSizes ?? [],
+        })
 
         res.status(200).json({
             settings,

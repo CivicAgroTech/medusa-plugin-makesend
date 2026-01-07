@@ -17,6 +17,7 @@ import {
 import { MakesendClient } from "../../providers/makesend/client"
 import { getLocationFromPostalCode } from "../../providers/makesend/postal-code-lookup"
 import { getProvinceId } from "../../providers/makesend/province-mapping"
+import { getPickupTimeSlot } from "../../utils/settings"
 
 export type CreateMakesendOrderInput = {
     // API credentials
@@ -96,7 +97,7 @@ function getDeliveryDate(): string {
 
 export const createMakesendOrderStep = createStep(
     "create-makesend-order",
-    async (input: CreateMakesendOrderInput) => {
+    async (input: CreateMakesendOrderInput, { container }) => {
 
         // Initialize Makesend client
         const client = new MakesendClient({
@@ -183,7 +184,7 @@ export const createMakesendOrderStep = createStep(
             pickupPostcode,
             pickupType: PickupType.PICKUP_AT_SENDER,
             branch: 0,
-            pickupTime: PickupTimeSlot.SLOT_10_12,
+            pickupTime: await getPickupTimeSlot(container), // Dynamically determine based on cutoff time
             shipment: [shipment],
         }
 

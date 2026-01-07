@@ -16,6 +16,7 @@ import {
     toast,
     Input,
     Label,
+    Checkbox,
 } from "@medusajs/ui"
 import { Buildings } from "@medusajs/icons"
 import { useState, useEffect } from "react"
@@ -31,17 +32,28 @@ interface District {
     provinceId: number
 }
 
+interface ParcelSize {
+    id: string
+    code: string
+    size: string
+}
+
 const MakesendSettingsPage = () => {
     const [provinces, setProvinces] = useState<Province[]>([])
     const [districts, setDistricts] = useState<District[]>([])
+    const [parcelSizes, setParcelSizes] = useState<ParcelSize[]>([])
     const [selectedProvinceId, setSelectedProvinceId] = useState<string>("")
     const [selectedDistrictId, setSelectedDistrictId] = useState<string>("")
+    const [selectedParcelSizes, setSelectedParcelSizes] = useState<string[]>([])
 
     // Sender information
     const [senderName, setSenderName] = useState<string>("")
     const [senderPhone, setSenderPhone] = useState<string>("")
     const [pickupAddress, setPickupAddress] = useState<string>("")
     const [pickupPostcode, setPickupPostcode] = useState<string>("")
+
+    // Time cutoff for same-day shipments
+    const [timeCutoff, setTimeCutoff] = useState<string>("")
 
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -56,6 +68,17 @@ const MakesendSettingsPage = () => {
             } catch (error) {
                 console.error("Failed to load provinces:", error)
                 toast.error("Failed to load provinces")
+            }
+        }
+
+        const loadParcelSizes = async () => {
+            try {
+                const response = await fetch("/admin/makesend/parcel-sizes")
+                const data = await response.json()
+                setParcelSizes(data.parcelSizes || [])
+            } catch (error) {
+                console.error("Failed to load parcel sizes:", error)
+                toast.error("Failed to load parcel sizes")
             }
         }
 
@@ -75,6 +98,10 @@ const MakesendSettingsPage = () => {
                     setSenderPhone(data.settings.senderPhone || "")
                     setPickupAddress(data.settings.pickupAddress || "")
                     setPickupPostcode(data.settings.pickupPostcode || "")
+                    // Load time cutoff
+                    setTimeCutoff(data.settings.timeCutoff || "")
+                    // Load parcel sizes
+                    setSelectedParcelSizes(data.settings.supportedParcelSizes || [])
                 }
             } catch (error) {
                 console.error("Failed to load settings:", error)
@@ -84,6 +111,7 @@ const MakesendSettingsPage = () => {
         }
 
         loadProvinces()
+        loadParcelSizes()
         loadSettings()
     }, [])
 
@@ -115,6 +143,24 @@ const MakesendSettingsPage = () => {
         setSelectedDistrictId("") // Reset district when province changes
     }
 
+    const handleParcelSizeToggle = (code: string) => {
+        setSelectedParcelSizes(prev => {
+            if (prev.includes(code)) {
+                return prev.filter(c => c !== code)
+            } else {
+                return [...prev, code]
+            }
+        })
+    }
+
+    const handleSelectAllParcelSizes = () => {
+        if (selectedParcelSizes.length === parcelSizes.length) {
+            setSelectedParcelSizes([])
+        } else {
+            setSelectedParcelSizes(parcelSizes.map(ps => ps.code))
+        }
+    }
+
     const handleSave = async () => {
         setSaving(true)
 
@@ -140,6 +186,8 @@ const MakesendSettingsPage = () => {
                     senderPhone,
                     pickupAddress,
                     pickupPostcode,
+                    timeCutoff,
+                    supportedParcelSizes: selectedParcelSizes,
                 }),
             })
 
@@ -237,6 +285,21 @@ const MakesendSettingsPage = () => {
                                     onChange={(e) => setPickupPostcode(e.target.value)}
                                 />
                             </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="timeCutoff">Cutoff Time (เวลาปิดรับงาน)</Label>
+                                <Input
+                                    id="timeCutoff"
+                                    type="time"
+                                    placeholder="e.g. 17:00"
+                                    value={timeCutoff}
+                                    onChange={(e) => setTimeCutoff(e.target.value)}
+                                />
+                                <Text className="text-xs text-ui-fg-subtle">
+                                    Orders before cutoff → Pickup 08:00-10:00 (Cycle 1)<br />
+                                    Orders after cutoff → Pickup 10:00-12:00 (Cycle 2)
+                                </Text>
+                            </div>
                         </div>
                     </div>
 
@@ -308,6 +371,87 @@ const MakesendSettingsPage = () => {
                                 </Text>
                             </div>
                         )}
+                    </div>
+
+                    {/* Supported Parcel Sizes Section */}
+                    <div className="space-y-4">
+                        <div>
+                            <Heading level="h2" className="mb-2">Supported Parcel Sizes</Heading>
+                            <Text className="text-ui-fg-subtle">
+                                Select which parcel sizes are available for your shipments.
+                            </Text>
+                        </div>
+
+                        <div className="space-y-3">
+                            {/* Select/Deselect All */}
+                            <div className="flex items-center gap-2 pb-2 border-b">
+                                <Checkbox
+                                    id="select-all"
+                                    checked={selectedParcelSizes.length === parcelSizes.length}
+                                    onCheckedChange={handleSelectAllParcelSizes}
+                                />
+                                <Label htmlFor="select-all" className="font-semibold cursor-pointer">
+                                    Select All ({selectedParcelSizes.length}/{parcelSizes.length})
+                                </Label>
+                            </div>
+
+                            {/* Parcel Size Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {parcelSizes.map((parcelSize) => (
+                                    <div
+                                        key={parcelSize.code}
+                                        className={`
+                                            flex items-start gap-3 p-3 rounded-lg border 
+                                            ${selectedParcelSizes.includes(parcelSize.code)
+                                                ? 'border-ui-fg-interactive bg-ui-bg-interactive'
+                                                : 'border-ui-border-base bg-ui-bg-base'
+                                            }
+                                            hover:border-ui-fg-muted transition-colors cursor-pointer
+                                        `}
+                                        onClick={() => handleParcelSizeToggle(parcelSize.code)}
+                                    >
+                                        <Checkbox
+                                            id={`parcel-${parcelSize.code}`}
+                                            checked={selectedParcelSizes.includes(parcelSize.code)}
+                                            onCheckedChange={() => handleParcelSizeToggle(parcelSize.code)}
+                                        />
+                                        <div className="flex-1">
+                                            <Label
+                                                htmlFor={`parcel-${parcelSize.code}`}
+                                                className="font-medium cursor-pointer block"
+                                            >
+                                                {parcelSize.size}
+                                            </Label>
+                                            <Text className="text-xs text-ui-fg-subtle">
+                                                Code: {parcelSize.code}
+                                            </Text>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Selected Summary */}
+                            {selectedParcelSizes.length > 0 && (
+                                <div className="p-4 bg-ui-bg-subtle rounded-lg">
+                                    <Text className="font-medium mb-2">
+                                        Selected Parcel Sizes ({selectedParcelSizes.length}):
+                                    </Text>
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedParcelSizes.map(code => {
+                                            const size = parcelSizes.find(ps => ps.code === code)
+                                            return (
+                                                <span
+                                                    key={code}
+                                                    className="px-2 py-1 bg-ui-bg-base rounded text-sm"
+                                                >
+                                                    {size?.size}
+                                                </span>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Save Button */}
