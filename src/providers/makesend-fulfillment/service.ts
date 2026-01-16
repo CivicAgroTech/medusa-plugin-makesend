@@ -27,12 +27,11 @@ import {
 } from "./types"
 import { getProvinceId } from "./province-mapping"
 import { getLocationFromPostalCode } from "./postal-code-lookup"
-import MakesendSettingsModuleService from "../../modules/makesend-settings/service"
-import { MAKESEND_SETTINGS_MODULE } from "../../modules/makesend-settings"
+import MakesendSettingsModuleService from "../../modules/makesend/service"
+import { MAKESEND_MODULE } from "../../modules/makesend"
 
 type InjectedDependencies = {
     logger: Logger
-    [MAKESEND_SETTINGS_MODULE]: MakesendSettingsModuleService
 }
 
 /**
@@ -40,12 +39,11 @@ type InjectedDependencies = {
  * Integrates Makesend logistics services with MedusaJS v2
  */
 class MakesendFulfillmentProviderService extends AbstractFulfillmentProviderService {
-    static identifier = "makesend"
+    static identifier = "makesend-fulfillment"
 
     protected logger_: Logger
     protected options_: MakesendProviderOptions
     protected client_: MakesendClient
-    protected settingsService_: MakesendSettingsModuleService
 
     constructor(
         container: InjectedDependencies,
@@ -53,47 +51,68 @@ class MakesendFulfillmentProviderService extends AbstractFulfillmentProviderServ
     ) {
         super()
         this.logger_ = container.logger
-        this.settingsService_ = container[MAKESEND_SETTINGS_MODULE]
         this.options_ = options
         this.client_ = new MakesendClient(options)
     }
 
     /**
+     * Helper: Get settings service from container (when available)
+     */
+    private getSettingsService(container?: any): MakesendSettingsModuleService | null {
+        try {
+            if (!container) return null
+            return container.resolve(MAKESEND_MODULE)
+        } catch (error) {
+            this.logger_.debug("Settings service not available")
+            return null
+        }
+    }
+
+    /**
      * Helper: Get supported parcel sizes from settings
      */
-    private async getSupportedParcelSizes(): Promise<ParcelSize[]> {
-        const settings = await this.settingsService_.getSettings()
+    private async getSupportedParcelSizes(container?: any): Promise<ParcelSize[]> {
+        try {
+            const settingsService = this.getSettingsService(container)
+            if (!settingsService) {
+                return [ParcelSize.S80, ParcelSize.S100] // defaults
+            }
 
-        if (!settings || !settings.supportedParcelSizes) {
+            const settings = await settingsService.getSettings()
+            if (!settings || !settings.supportedParcelSizes) {
+                return [ParcelSize.S80, ParcelSize.S100] // defaults
+            }
+
+            // Parse supported sizes
+            let codes: string[] = []
+            if (typeof settings.supportedParcelSizes === 'string') {
+                try {
+                    codes = JSON.parse(settings.supportedParcelSizes)
+                } catch {
+                    codes = []
+                }
+            } else if (Array.isArray(settings.supportedParcelSizes)) {
+                codes = settings.supportedParcelSizes
+            }
+
+            const PARCEL_SIZE_CODE_MAP: Record<string, ParcelSize> = {
+                "s40": ParcelSize.S40, "s60": ParcelSize.S60, "s80": ParcelSize.S80,
+                "s100": ParcelSize.S100, "s120": ParcelSize.S120, "s140": ParcelSize.S140,
+                "s160": ParcelSize.S160, "s180": ParcelSize.S180, "s200": ParcelSize.S200,
+                "env": ParcelSize.ENV, "polym": ParcelSize.POLYM, "polyl": ParcelSize.POLYL,
+            }
+
+            const sizes: ParcelSize[] = []
+            for (const code of codes) {
+                const size = PARCEL_SIZE_CODE_MAP[code]
+                if (size !== undefined) sizes.push(size)
+            }
+
+            return sizes.length > 0 ? sizes : [ParcelSize.S80, ParcelSize.S100]
+        } catch (error) {
+            this.logger_.error("Failed to get supported parcel sizes:", error)
             return [ParcelSize.S80, ParcelSize.S100] // defaults
         }
-
-        // Parse supported sizes
-        let codes: string[] = []
-        if (typeof settings.supportedParcelSizes === 'string') {
-            try {
-                codes = JSON.parse(settings.supportedParcelSizes)
-            } catch {
-                codes = []
-            }
-        } else if (Array.isArray(settings.supportedParcelSizes)) {
-            codes = settings.supportedParcelSizes
-        }
-
-        const PARCEL_SIZE_CODE_MAP: Record<string, ParcelSize> = {
-            "s40": ParcelSize.S40, "s60": ParcelSize.S60, "s80": ParcelSize.S80,
-            "s100": ParcelSize.S100, "s120": ParcelSize.S120, "s140": ParcelSize.S140,
-            "s160": ParcelSize.S160, "s180": ParcelSize.S180, "s200": ParcelSize.S200,
-            "env": ParcelSize.ENV, "polym": ParcelSize.POLYM, "polyl": ParcelSize.POLYL,
-        }
-
-        const sizes: ParcelSize[] = []
-        for (const code of codes) {
-            const size = PARCEL_SIZE_CODE_MAP[code]
-            if (size !== undefined) sizes.push(size)
-        }
-
-        return sizes.length > 0 ? sizes : [ParcelSize.S80, ParcelSize.S100]
     }
 
     /**

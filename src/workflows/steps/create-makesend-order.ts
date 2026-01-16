@@ -13,10 +13,10 @@ import {
     ParcelType,
     PickupType,
     PickupTimeSlot,
-} from "../../providers/makesend/types"
-import { MakesendClient } from "../../providers/makesend/client"
-import { getLocationFromPostalCode } from "../../providers/makesend/postal-code-lookup"
-import { getProvinceId } from "../../providers/makesend/province-mapping"
+} from "../../providers/makesend-fulfillment/types"
+import { MakesendClient } from "../../providers/makesend-fulfillment/client"
+import { getLocationFromPostalCode } from "../../providers/makesend-fulfillment/postal-code-lookup"
+import { getProvinceId } from "../../providers/makesend-fulfillment/province-mapping"
 import { getPickupTimeSlot } from "../../utils/settings"
 
 export type CreateMakesendOrderInput = {

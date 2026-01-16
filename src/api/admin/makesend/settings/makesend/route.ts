@@ -7,8 +7,8 @@
  */
 
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import MakesendSettingsModuleService from "../../../../modules/makesend-settings/service"
-import { MAKESEND_SETTINGS_MODULE } from "../../../../modules/makesend-settings"
+import MakesendSettingsModuleService from "../../../../../modules/makesend/service"
+import { MAKESEND_MODULE } from "../../../../../modules/makesend"
 
 /**
  * GET /admin/makesend/settings
@@ -20,7 +20,7 @@ export const GET = async (
 ) => {
     try {
         const settingsModuleService: MakesendSettingsModuleService =
-            req.scope.resolve(MAKESEND_SETTINGS_MODULE)
+            req.scope.resolve(MAKESEND_MODULE)
 
         const settings = await settingsModuleService.getSettings()
 
@@ -49,7 +49,7 @@ export const POST = async (
 ) => {
     try {
         const settingsModuleService: MakesendSettingsModuleService =
-            req.scope.resolve(MAKESEND_SETTINGS_MODULE)
+            req.scope.resolve(MAKESEND_MODULE)
 
         const body = req.body as any
 

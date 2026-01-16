@@ -6,14 +6,14 @@
 import { MedusaService } from "@medusajs/framework/utils"
 import MakesendSetting from "./models/setting"
 
-class MakesendSettingsModuleService extends MedusaService({
+class MakesendModuleService extends MedusaService({
     MakesendSetting,
 }) {
     /**
      * Get the current settings (there should only be one record)
      */
     async getSettings() {
-        const [settings] = await this.listMakesendSettings({ take: 1 })
+        const [settings] = await this.listMakesendSettings({}, { take: 1 })
         return settings || null
     }
 
@@ -55,4 +55,4 @@ class MakesendSettingsModuleService extends MedusaService({
     }
 }
 
-export default MakesendSettingsModuleService
+export default MakesendModuleService

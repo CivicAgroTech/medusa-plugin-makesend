@@ -4,9 +4,9 @@
  */
 
 import { MedusaContainer } from "@medusajs/framework/types"
-import { ParcelSize } from "../providers/makesend/types"
-import MakesendSettingsModuleService from "../modules/makesend-settings/service"
-import { MAKESEND_SETTINGS_MODULE } from "../modules/makesend-settings"
+import { ParcelSize } from "../providers/makesend-fulfillment/types"
+import MakesendSettingsModuleService from "../modules/makesend/service"
+import { MAKESEND_MODULE } from "../modules/makesend"
 
 interface MakesendSettings {
     originProvinceId: number | null
@@ -46,7 +46,7 @@ const PARCEL_SIZE_CODE_MAP: Record<string, ParcelSize> = {
 export async function loadSettings(container: MedusaContainer): Promise<MakesendSettings | null> {
     try {
         const settingsModuleService: MakesendSettingsModuleService =
-            container.resolve(MAKESEND_SETTINGS_MODULE)
+            container.resolve(MAKESEND_MODULE)
 
         const settings = await settingsModuleService.getSettings()
 

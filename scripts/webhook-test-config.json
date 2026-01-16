@@ -1,0 +1,64 @@
+{
+    "name": "webhook-test-config",
+    "description": "Configuration for webhook testing",
+    "defaultHost": "http://localhost:9000",
+    "environments": {
+        "local": {
+            "host": "http://localhost:9000",
+            "description": "Local development server"
+        },
+        "staging": {
+            "host": "https://staging-api.yoursite.com",
+            "description": "Staging environment"
+        },
+        "production": {
+            "host": "https://api.yoursite.com",
+            "description": "Production environment"
+        }
+    },
+    "testScenarios": {
+        "quickTest": {
+            "description": "Quick test of all webhooks",
+            "webhook": "all",
+            "count": 1,
+            "delay": 500
+        },
+        "loadTest": {
+            "description": "Load test with multiple requests",
+            "webhook": "all",
+            "count": 10,
+            "delay": 100
+        },
+        "statusFlow": {
+            "description": "Complete delivery status flow simulation",
+            "webhook": "flow",
+            "count": 1,
+            "delay": 1000
+        }
+    },
+    "sampleData": {
+        "trackingIds": [
+            "MS1704672000001",
+            "MS1704672000002",
+            "MS1704672000003"
+        ],
+        "aliasIds": [
+            "ORDER_123456",
+            "ORDER_789012",
+            "ORDER_345678"
+        ],
+        "statusCodes": [
+            "PENDING",
+            "SHIPPED",
+            "DELIVERED",
+            "DELIVERY_FAILED",
+            "RETURNED"
+        ],
+        "sizeCodes": [
+            "S",
+            "M",
+            "L",
+            "XL"
+        ]
+    }
+}

@@ -6,7 +6,7 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { Modules } from "@medusajs/framework/utils"
 import { IFulfillmentModuleService } from "@medusajs/framework/types"
-import { Temperature } from "../../providers/makesend/types"
+import { Temperature } from "../../providers/makesend-fulfillment/types"
 
 export type FetchShippingOptionInput = {
     shipping_option_id: string
