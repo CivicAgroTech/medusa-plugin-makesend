@@ -400,10 +400,14 @@ export interface MakesendProviderOptions {
     labelBaseUrl?: string
 
     /**
-     * Enable debug logging
-     * @default false
+     * Webhook URL for Makesend to send status updates
      */
-    debug?: boolean
+    statusWebhookUrl?: string
+
+    /**
+     * Webhook URL for Makesend to send parcel size updates
+     */
+    parcelSizeWebhookUrl?: string
 }
 
 /**

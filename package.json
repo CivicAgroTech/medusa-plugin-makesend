@@ -1,6 +1,6 @@
 {
-  "name": "medusa-plugin-makesend",
-  "version": "0.1.2",
+  "name": "@civicagrotech/medusa-plugin-makesend",
+  "version": "0.1.3",
   "description": "Medusa fulfillment plugin for Makesend integration",
   "author": "CivicAgrotech Co., Ltd. (https://civicagrotech.com)",
   "license": "MIT",

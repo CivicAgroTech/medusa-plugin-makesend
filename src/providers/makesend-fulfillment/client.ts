@@ -49,7 +49,6 @@ export class MakesendClient {
 
         this.apiKey = options.apiKey
         this.baseUrl = options.baseUrl || DEFAULT_BASE_URL
-        this.debug = options.debug || false
     }
 
     /**
@@ -60,10 +59,6 @@ export class MakesendClient {
         body: unknown
     ): Promise<T> {
         const url = `${this.baseUrl}${endpoint}`
-
-        if (this.debug) {
-            console.log(`[Makesend] Request: ${endpoint}`, JSON.stringify(body, null, 2))
-        }
 
         try {
             const response = await fetch(url, {

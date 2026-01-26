@@ -22,10 +22,10 @@ A MedusaJS plugin that integrates [Makesend](https://www.makesend.asia/) logisti
 
 ```bash
 # Using yarn
-yarn add medusa-plugin-makesend
+yarn add @civicagrotech/medusa-plugin-makesend
 
 # Using npm
-npm install medusa-plugin-makesend
+npm install @civicagrotech/medusa-plugin-makesend
 ```
 
 ## Configuration
@@ -64,9 +64,14 @@ module.exports = defineConfig({
             options: {
               apiKey: process.env.MAKESEND_API_KEY,
               // Optional: Override API endpoints
-              // baseUrl: "https://apis.makesend.asia",
-              // trackingBaseUrl: "https://makesend.asia",
-              // labelBaseUrl: "https://makesend.asia",
+              // baseUrl: "https://apis.makesend.asia/oapi/api",
+              // trackingBaseUrl: "https://app.makesend.asia",
+              // labelBaseUrl: "https://app.makesend.asia",
+              // Webhook URLs (optional - for automatic webhook registration)
+              // statusWebhookUrl: "https://your-domain.com/store/makesend/webhook/status",
+              // parcelSizeWebhookUrl: "https://your-domain.com/store/makesend/webhook/parcel-size",
+              // Enable debug logging (default: false)
+              // debug: false,
             },
           },
         ],
@@ -83,6 +88,11 @@ module.exports = defineConfig({
         // baseUrl: "https://apis.makesend.asia/oapi/api",
         // trackingBaseUrl: "https://app.makesend.asia",
         // labelBaseUrl: "https://app.makesend.asia",
+        // Webhook URLs (optional - for automatic webhook registration)
+        // statusWebhookUrl: "https://your-domain.com/store/makesend/webhook/status",
+        // parcelSizeWebhookUrl: "https://your-domain.com/store/makesend/webhook/parcel-size",
+        // Enable debug logging (default: false)
+        // debug: false,
       },
     },
   ],
@@ -96,6 +106,34 @@ After installation, create shipping options in Medusa Admin:
 1. Navigate to **Settings → Fulfillment**
 2. Select **Makesend** provider
 3. Create shipping options using the fulfillment option IDs below
+
+### Provider Options
+
+The Makesend provider supports the following configuration options:
+
+| Option | Type | Required | Default | Description |
+|--------|------|----------|---------|-------------|
+| `apiKey` | string | Yes | - | Your Makesend API key for authentication |
+| `baseUrl` | string | No | `https://apis.makesend.asia/oapi/api` | Base URL for Makesend API endpoints |
+| `trackingBaseUrl` | string | No | `https://app.makesend.asia` | Base URL for tracking links |
+| `labelBaseUrl` | string | No | `https://app.makesend.asia` | Base URL for shipping label links |
+| `statusWebhookUrl` | string | No | - | URL for Makesend to send status update webhooks |
+| `parcelSizeWebhookUrl` | string | No | - | URL for Makesend to send parcel size update webhooks |
+| `debug` | boolean | No | `false` | Enable debug logging for API requests |
+
+**Example with all options:**
+
+```typescript
+{
+  apiKey: process.env.MAKESEND_API_KEY,
+  baseUrl: "https://apis.makesend.asia/oapi/api",
+  trackingBaseUrl: "https://app.makesend.asia",
+  labelBaseUrl: "https://app.makesend.asia",
+  statusWebhookUrl: "https://your-domain.com/store/makesend/webhook/status",
+  parcelSizeWebhookUrl: "https://your-domain.com/store/makesend/webhook/parcel-size",
+  debug: true,
+}
+```
 
 ## Fulfillment Options
 
@@ -116,7 +154,30 @@ The plugin provides three shipping options:
 
 ## Webhooks
 
-Configure webhook URLs in your Makesend dashboard to receive automatic updates:
+### Automatic Webhook Setup
+
+When you provide `statusWebhookUrl` and/or `parcelSizeWebhookUrl` in the plugin configuration, the plugin will **automatically register these webhooks** with Makesend during module initialization. No manual configuration in the Makesend dashboard is required.
+
+```typescript
+plugins: [
+  {
+    resolve: "medusa-plugin-makesend",
+    options: {
+      apiKey: process.env.MAKESEND_API_KEY,
+      // These webhooks will be automatically registered with Makesend
+      statusWebhookUrl: "https://your-domain.com/store/makesend/webhook/status",
+      parcelSizeWebhookUrl: "https://your-domain.com/store/makesend/webhook/parcel-size",
+    },
+  },
+]
+```
+
+The plugin will:
+1. Initialize the Makesend client with your API key
+2. Attempt to register the status update webhook if URL is provided
+3. Attempt to register the parcel size webhook if URL is provided
+4. Log the results to your Medusa logs
+5. Continue gracefully if webhook registration fails (won't block module loading)
 
 ### Status Updates
 **Endpoint**: `https://your-domain.com/store/makesend/webhook/status`
